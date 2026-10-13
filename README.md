@@ -54,3 +54,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as desc
 ## Not in the source tree
 Built packages live on the Releases page rather than in git. The `dist/` and `build/` folders, the virtualenv and
 downloaded voice models are also excluded.
+
+## License
+GPL-3.0. See [LICENSE](LICENSE).
