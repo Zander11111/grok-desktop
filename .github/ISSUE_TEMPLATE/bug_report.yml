@@ -1,0 +1,17 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: textarea
+    attributes: {label: What happened?, description: Include steps to reproduce.}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: What did you expect?}
+  - type: input
+    attributes: {label: Grok Desktop version, placeholder: "0.2.3"}
+    validations: {required: true}
+  - type: dropdown
+    attributes: {label: OS, options: [Windows, macOS, Linux]}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: Logs or screenshots, description: Remove any personal info or tokens first.}

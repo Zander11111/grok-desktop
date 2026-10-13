@@ -1,0 +1,109 @@
+name: Release builds (Windows + macOS)
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach to (e.g. v0.2.3)
+        required: true
+      ref:
+        description: Branch/commit to build from (default main)
+        required: false
+        default: main
+permissions:
+  contents: write
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: "${{ inputs.ref || env.TAG }}" }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - name: Build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ver = $env:TAG.TrimStart("v")
+          python -m pip install -q PySide6-Essentials pyinstaller markdown pygments pillow sherpa-onnx
+          if (-not (Test-Path packaging\icon.ico)) { python scripts\make_icon.py }
+          python -m PyInstaller --noconfirm --clean --distpath dist --workpath build\pyinstaller packaging\grok-desktop.spec
+          choco install innosetup -y --no-progress | Out-Null
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          & $iscc /Q "/DAppVersion=$ver" packaging\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
+          New-Item -ItemType Directory -Force out | Out-Null
+          Move-Item "dist\GrokDesktop-Setup-$ver.exe" "out\grok-desktop-$ver-windows-amd64.exe"
+      - name: Smoke test (install silently, --version, headless start)
+        shell: pwsh
+        run: |
+          $ver = $env:TAG.TrimStart("v")
+          $p = Start-Process "out\grok-desktop-$ver-windows-amd64.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit $($p.ExitCode)" }
+          $exe = "$env:LOCALAPPDATA\Programs\GrokDesktop\GrokDesktop.exe"
+          if (-not (Test-Path $exe)) { throw "not installed" }
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $p = Start-Process $exe -ArgumentList "--version" -Wait -PassThru -RedirectStandardOutput v.txt
+          Get-Content v.txt
+          if ($p.ExitCode -ne 0) { throw "--version exit $($p.ExitCode)" }
+          $p = Start-Process $exe -PassThru
+          Start-Sleep 15
+          if ($p.HasExited) { throw "app exited early with $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+          "headless start OK"
+      - name: Upload
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release upload "$env:TAG" out/* --clobber -R "${{ github.repository }}"
+        shell: pwsh
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: "${{ inputs.ref || env.TAG }}" }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - name: Build
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          python -m pip install -q PySide6-Essentials pyinstaller markdown pygments pillow sherpa-onnx
+          python -m PyInstaller --noconfirm --clean --distpath dist --workpath build/pyinstaller packaging/grok-desktop.spec
+          rm -rf dist/GrokDesktop
+          mkdir -p dmg out && cp -R "dist/Grok Desktop.app" dmg/ && ln -s /Applications dmg/Applications
+          hdiutil create -volname "Grok Desktop" -srcfolder dmg -ov -format UDZO "out/grok-desktop-$VER-macos-${{ matrix.arch }}.dmg"
+      - name: Smoke test (--version, headless start)
+        run: |
+          set -euo pipefail
+          BIN="dist/Grok Desktop.app/Contents/MacOS/GrokDesktop"
+          "$BIN" --version
+          QT_QPA_PLATFORM=offscreen "$BIN" & PID=$!
+          sleep 15
+          kill -0 $PID || { echo "app exited early"; exit 1; }
+          kill $PID; echo "headless start OK"
+      - name: Upload
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release upload "$TAG" out/*.dmg --clobber -R "${{ github.repository }}"
+
+  checksums:
+    needs: [windows, macos]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild SHA256SUMS.txt
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          set -euo pipefail
+          mkdir a && cd a
+          gh release download "$TAG" -R "${{ github.repository }}" --pattern 'grok-desktop-*'
+          sha256sum grok-desktop-* | sort -k2 > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release upload "$TAG" SHA256SUMS.txt --clobber -R "${{ github.repository }}"

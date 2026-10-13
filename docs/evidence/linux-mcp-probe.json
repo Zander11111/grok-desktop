@@ -1,0 +1,75 @@
+[
+ {
+  "tool": "shell",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"Exit code 0.\",  \"exit_code\": 0,  \"stdout\": \"hello from Linux\\n\",  \"stderr\": \"\",  \"truncated\": false }"
+ },
+ {
+  "tool": "screen_info",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"1 monitor(s). Mouse at 640,400 (screen pixels).\",  \"monitors\": [   {    \"index\": 0,    \"left\": 0,    \"top\": 0,  "
+ },
+ {
+  "tool": "screenshot",
+  "isError": false,
+  "content_types": [
+   "text",
+   "image"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"Screenshot of monitor 0 (1280\u00d7800 at 0,0). The image is 640\u00d7400; give mouse coordinates in this image's pixels.\""
+ },
+ {
+  "tool": "list_windows",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"1 window(s) open.\",  \"windows\": [   {    \"handle\": 4194311,    \"title\": \"Grok Desktop\",    \"process\": \"python\", "
+ },
+ {
+  "tool": "mouse_move",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"Mouse moved to 100,100 (screen 200,200).\",  \"screen\": [   200,   200  ] }"
+ },
+ {
+  "tool": "keyboard_hotkey",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"Pressed shift.\" }"
+ },
+ {
+  "tool": "fs_list",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"0 item(s) in /tmp/gdhome\",  \"path\": \"/tmp/gdhome\",  \"items\": [] }"
+ },
+ {
+  "tool": "open_url",
+  "isError": false,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": true,  \"message\": \"Opened https://example.com in the default browser.\" }"
+ },
+ {
+  "tool": "open_app",
+  "isError": true,
+  "content_types": [
+   "text"
+  ],
+  "text": "{  \"ok\": false,  \"message\": \"I couldn't find an app called 'nonexistent-app-xyz'.\",  \"suggestions\": [   \"Openbox Configuration Manager\",   \""
+ }
+]

@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=Grok Desktop
+GenericName=AI Assistant
+Comment=Chat with Grok (SuperGrok login) and let it use your computer, with your OK
+Exec=grok-desktop %U
+Icon=grok-desktop
+Terminal=false
+Categories=Network;Chat;
+Keywords=grok;ai;chat;assistant;xai;
+StartupWMClass=GrokDesktop
+StartupNotify=false
+Actions=quick-ask;stop;
+
+[Desktop Action quick-ask]
+Name=Quick ask
+Exec=grok-desktop --quick-ask
+
+[Desktop Action stop]
+Name=Emergency stop (computer control)
+Exec=grok-desktop --stop

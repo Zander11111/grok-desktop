@@ -1,0 +1,207 @@
+{
+ "tools": [
+  "fs_list",
+  "fs_read",
+  "fs_write",
+  "fs_move",
+  "fs_delete",
+  "fs_search",
+  "view_image",
+  "powershell",
+  "screenshot",
+  "screen_info",
+  "mouse_move",
+  "mouse_click",
+  "mouse_drag",
+  "mouse_scroll",
+  "keyboard_type",
+  "keyboard_hotkey",
+  "list_windows",
+  "focus_window",
+  "open_url",
+  "open_app"
+ ],
+ "allowed_begins": [
+  "screen_info",
+  "fs_write",
+  "fs_read",
+  "fs_list",
+  "fs_search",
+  "powershell",
+  "open_app",
+  "list_windows",
+  "focus_window",
+  "keyboard_type",
+  "keyboard_hotkey",
+  "mouse_move",
+  "mouse_click",
+  "mouse_scroll",
+  "screenshot",
+  "view_image",
+  "fs_move",
+  "fs_delete"
+ ],
+ "calls": [
+  {
+   "tool": "screen_info",
+   "args": {},
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"1 monitor(s). Mouse at 800,450 (screen pixels).\",\n \"monitors\": [\n  {\n   \"left\": 0,\n   \"top\": 0,\n   \"width\": 1600,\n   \"height\": 900,\n   \"primary\": true,\n   \"scale\": 1.0,\n   \"device\": \"\\\\\\\\.\\\\DISPLAY1\",\n   \"index\": 0\n  }\n ],\n \"mouse_screen\": [\n  800,\n  450\n ],\n \"mouse_in_screenshot_coords\": [\n  800,\n  450\n ],\n \"coordinate_space\": \"primary screen (no screenshot yet)\",\n \"foreground_window\": null\n}",
+   "images": 0
+  },
+  {
+   "tool": "fs_write",
+   "args": {
+    "path": "~/gd-probe-233631.txt",
+    "content": "hello from the wine probe\n"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Created C:\\\\users\\\\box\\\\gd-probe-233631.txt (26 characters).\",\n \"path\": \"C:\\\\users\\\\box\\\\gd-probe-233631.txt\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "fs_read",
+   "args": {
+    "path": "~/gd-probe-233631.txt"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Read 26 characters from C:\\\\users\\\\box\\\\gd-probe-233631.txt\",\n \"path\": \"C:\\\\users\\\\box\\\\gd-probe-233631.txt\",\n \"content\": \"hello from the wine probe\\n\",\n \"total_chars\": 26,\n \"truncated\": false\n}",
+   "images": 0
+  },
+  {
+   "tool": "fs_list",
+   "args": {
+    "path": "~"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"13 item(s) in C:\\\\users\\\\box\",\n \"path\": \"C:\\\\users\\\\box\",\n \"items\": [\n  {\n   \"name\": \"AppData\",\n   \"type\": \"folder\",\n   \"size\": null,\n   \"modified\": \"2026-10-02 23:36\"\n  },\n  {\n   \"name\": \"Contacts\",\n   \"type\": \"folder\",\n   \"size\": null,\n   \"modified\": \"2026-10-02 23:36\"\n  },\n  {\n   \"name\": \"Desktop\",\n   \"type\": \"folder\",\n   \"size\": null,\n   \"modified\": \"2026-10-02 23:36\"\n  },\n  {\n   \"name\": \"Documents\",\n   \"type\": \"folder\",\n   \"size\": null,\n   \"modified\": \"2026-10-02 23:36\"\n  },\n  {\n   \"name\": \"Downloads\",\n   \"type\": \"folder\",\n   \"size\": null,\n   \"modified\": \"2026-",
+   "images": 0
+  },
+  {
+   "tool": "fs_search",
+   "args": {
+    "root": "~",
+    "name": "gd-probe*"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Found 1 file(s) under C:\\\\users\\\\box\",\n \"files\": [\n  \"C:\\\\users\\\\box\\\\gd-probe-233631.txt\"\n ],\n \"scanned\": 8\n}",
+   "images": 0
+  },
+  {
+   "tool": "powershell",
+   "args": {
+    "command": "Get-Date"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Exit code 0.\",\n \"exit_code\": 0,\n \"stdout\": \"\",\n \"stderr\": \"\",\n \"truncated\": false\n}",
+   "images": 0
+  },
+  {
+   "tool": "open_app",
+   "args": {
+    "name": "notepad"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Started C:\\\\windows\\\\system32\\\\notepad.exe.\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "list_windows",
+   "args": {},
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"1 window(s) open.\",\n \"windows\": [\n  {\n   \"handle\": 262304,\n   \"title\": \"Untitled - Notepad\",\n   \"process\": \"notepad.exe\",\n   \"left\": 0,\n   \"top\": 0,\n   \"width\": 855,\n   \"height\": 641,\n   \"minimized\": false,\n   \"focused\": true\n  }\n ]\n}",
+   "images": 0
+  },
+  {
+   "tool": "focus_window",
+   "args": {
+    "window": "Notepad"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Switched to 'Untitled - Notepad'.\",\n \"handle\": 262304\n}",
+   "images": 0
+  },
+  {
+   "tool": "keyboard_type",
+   "args": {
+    "text": "Typed by Grok Desktop via SendInput under wine"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Typed 46 character(s).\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "keyboard_hotkey",
+   "args": {
+    "keys": "enter"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Pressed enter.\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "mouse_move",
+   "args": {
+    "x": 300,
+    "y": 300
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Mouse moved to 300,300 (screen 300,300).\",\n \"screen\": [\n  300,\n  300\n ]\n}",
+   "images": 0
+  },
+  {
+   "tool": "mouse_click",
+   "args": {
+    "x": 320,
+    "y": 320
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Clicked left at screen 320,320.\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "mouse_scroll",
+   "args": {
+    "amount": -2
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Scrolled -2 notch(es).\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "screenshot",
+   "args": {},
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Screenshot of monitor 0 (1600\u00d7900 at 0,0). The image is 1280\u00d7720; give mouse coordinates in this image's pixels.\",\n \"width\": 1280,\n \"height\": 720,\n \"saved_to\": \"C:\\\\users\\\\box\\\\AppData\\\\Roaming\\\\GrokDesktop\\\\screenshots\\\\shot-20261002-233639-700.png\"\n}",
+   "images": 1
+  },
+  {
+   "tool": "view_image",
+   "args": {
+    "path": "Z:\\src\\grok-desktop\\docs\\evidence\\wine-mcp-screenshot.png"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Image wine-mcp-screenshot.png (1280\u00d7720)\",\n \"path\": \"Z:\\\\src\\\\grok-desktop\\\\docs\\\\evidence\\\\wine-mcp-screenshot.png\"\n}",
+   "images": 1
+  },
+  {
+   "tool": "fs_move",
+   "args": {
+    "source": "~/gd-probe-233631.txt",
+    "destination": "~/gd-probe-moved-233631.txt"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Moved C:\\\\users\\\\box\\\\gd-probe-233631.txt \u2192 C:\\\\users\\\\box\\\\gd-probe-moved-233631.txt.\",\n \"source\": \"C:\\\\users\\\\box\\\\gd-probe-233631.txt\",\n \"destination\": \"C:\\\\users\\\\box\\\\gd-probe-moved-233631.txt\"\n}",
+   "images": 0
+  },
+  {
+   "tool": "fs_delete",
+   "args": {
+    "path": "~/gd-probe-moved-233631.txt"
+   },
+   "isError": false,
+   "text": "{\n \"ok\": true,\n \"message\": \"Moved C:\\\\users\\\\box\\\\gd-probe-moved-233631.txt to the Recycle Bin.\",\n \"path\": \"C:\\\\users\\\\box\\\\gd-probe-moved-233631.txt\"\n}",
+   "images": 0
+  }
+ ]
+}

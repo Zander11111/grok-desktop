@@ -1,0 +1,13 @@
+dist/
+build/
+.venv/
+.voice-models/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.deb
+*.AppImage
+*.tar.gz
+*.zip
+*.exe
+*.log
