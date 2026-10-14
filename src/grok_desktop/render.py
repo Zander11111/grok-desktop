@@ -27,7 +27,12 @@ except ImportError:  # pragma: no cover
 ACCENT = "#7C5CFF"
 ACCENT2 = "#3D8BFF"
 FG, MUTED, CODE_BG, CODE_HEAD, USER_BG = "#E8E6F0", "#8C88A3", "#0B0A10", "#1C1A26", "#272248"
-STATUS_ICON = {"pending": "⏳", "in_progress": "⚙️", "completed": "✅", "failed": "❌"}
+STATUS_WORD = {"pending": "Pending", "in_progress": "Working", "completed": "Done", "failed": "Failed"}
+STARTERS = (
+    ("error", "Explain this error", "Explain this error:\n\n"),
+    ("review", "Review a file", "Review this file. Point out bugs, risks, and anything unclear:\n\n"),
+    ("reply", "Draft a reply", "Draft a clear, professional reply to this:\n\n"),
+)
 _FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})\s*([\w+#.-]*)[^\n]*$")
 
 DOC_CSS = f"""
@@ -140,7 +145,8 @@ class Renderer:
                 uri = pathlib.Path(p).as_uri() if pathlib.Path(p).is_absolute() else p
                 out.append(f'<img src="{html.escape(uri)}" width="{min(w, 360)}"> ')
             else:
-                out.append(f'<span style="background-color:#1E1C29; color:{FG}">&nbsp;📄 {html.escape(a.get("name", p))}&nbsp;</span> ')
+                name = html.escape(a.get("name", p))
+                out.append(f'<span style="background-color:#1E1C29; color:{FG}">&nbsp;{name}&nbsp;</span> ')
         return "<p>" + "".join(out) + "</p>" if out else ""
 
     def message(self, m: dict) -> str:
@@ -148,23 +154,24 @@ class Renderer:
         if role == "user":
             self.message_text[mid] = text
             body = html.escape(text).replace("\n", "<br>")
-            return (f'<table width="100%" cellspacing="0" cellpadding="0" style="margin-top:14px"><tr><td width="18%"></td>'
-                    f'<td bgcolor="{USER_BG}" style="padding:10px 12px">{self.attachments(m.get("attachments"))}{body}</td>'
+            return (f'<table width="100%" cellspacing="0" cellpadding="0" style="margin-top:18px; margin-bottom:8px"><tr>'
+                    f'<td width="30%"></td>'
+                    f'<td bgcolor="{USER_BG}" style="padding:12px 14px">{self.attachments(m.get("attachments"))}{body}</td>'
                     f'</tr></table>')
         if role == "assistant":
             self.message_text[mid] = text
             cursor = ' <span style="color:%s">▍</span>' % ACCENT if m.get("streaming") else ""
-            copy = "" if m.get("streaming") else f'<p style="color:{MUTED}"><a href="copymsg:{mid}">Copy</a></p>'
-            return (f'<p style="margin-top:14px"><b><span style="color:{ACCENT}">Grok</span></b></p>'
-                    f'{self.markdown(text)}{cursor}{copy}')
+            return (f'<p style="margin-top:18px; margin-bottom:4px"><b><span style="color:{ACCENT}">Grok</span></b></p>'
+                    f'{self.markdown(text)}{cursor}')
         if role == "thought":
             short = " ".join(text.split())
             short = short if len(short) < 400 else short[:400] + "…"
-            return f'<p style="color:{MUTED}"><i>💭 {html.escape(short)}</i></p>'
+            return f'<p style="color:{MUTED}; margin-top:8px; margin-bottom:2px"><i>{html.escape(short)}</i></p>'
         if role == "tool":
             meta = m.get("meta") or {}
-            icon = STATUS_ICON.get(meta.get("status", ""), "⚙️")
-            return f'<p style="color:{MUTED}">{icon} {html.escape(text)}</p>'
+            word = STATUS_WORD.get(meta.get("status", ""), "Working")
+            return (f'<p style="color:{MUTED}; margin-top:2px; margin-bottom:2px">'
+                    f'{html.escape(word)} · {html.escape(text)}</p>')
         # note
         kind = (m.get("meta") or {}).get("kind", "")
         color = "#FF7A90" if kind == "error" else MUTED
@@ -175,8 +182,19 @@ class Renderer:
         return "".join(self.message(m) for m in messages)
 
 
+def starter_text(key: str) -> str:
+    for name, _label, text in STARTERS:
+        if name == key:
+            return text
+    return ""
+
+
 def welcome_html() -> str:
+    cells = "".join(
+        f'<td bgcolor="#1C1A26" style="padding:8px 14px"><a href="prompt:{key}">{html.escape(label)}</a></td>'
+        for key, label, _text in STARTERS)
     return (f'<br><br><p align="center" style="font-size:26px"><b><span style="color:{ACCENT}">Grok</span>'
             f'<span style="color:{ACCENT2}"> Desktop</span></b></p>'
-            f'<p align="center" style="color:{MUTED}">Ask anything. Attach files or images (drag, paste or 📎).<br>'
-            f'Grok can also use your {PC_NAME} (files, {SHELL_NAME}, screen, mouse and keyboard) — it asks first.</p>')
+            f'<p align="center" style="color:{MUTED}">Ask anything. Attach files or images, or drag them onto the window.<br>'
+            f'Grok can also use your {PC_NAME} (files, {SHELL_NAME}, screen, mouse and keyboard) — it asks first.</p>'
+            f'<table align="center" cellspacing="8" cellpadding="0"><tr>{cells}</tr></table>')
