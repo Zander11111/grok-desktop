@@ -24,8 +24,8 @@ STATE_TEXT = {"stopped": "Not connected", "starting": "Starting grok…",
               "connecting": "Connecting…", "ready": "Ready", "busy": "Grok is answering…",
               "needs_login": "Sign in needed", "error": "grok stopped", "no_grok": "grok not installed",
               "logging_in": "Waiting for sign-in…", "installing": "Installing grok…"}
-STATE_COLOR = {"stopped": "#8C88A3", "starting": "#E6B450", "connecting": "#E6B450", "ready": "#3DDC97",
-               "busy": "#A996FF", "needs_login": "#FF6B7A", "error": "#FF6B7A", "no_grok": "#FF6B7A",
+STATE_COLOR = {"stopped": "#8D8D8D", "starting": "#E6B450", "connecting": "#E6B450", "ready": "#3DDC97",
+               "busy": "#7C5CFF", "needs_login": "#FF6B7A", "error": "#FF6B7A", "no_grok": "#FF6B7A",
                "logging_in": "#E6B450", "installing": "#E6B450"}
 MODE_LABEL = {"ask": "Ask every time", "safe": "Safe actions", "all": "Allow everything"}
 MODE_COLOR = {"ask": MUTED, "safe": "#7DDE9A", "all": "#F0B429"}
@@ -265,7 +265,7 @@ class PermissionCard(QFrame):
         a = req["assessment"]
         color, label = {"high": ("#FF7A90", "High risk"), "medium": ("#E6B450", "Caution"),
                         "low": ("#A996FF", "Low risk")}.get(a["risk"], ("#E6B450", "Caution"))
-        src = "" if a.get("server") != "grok-desktop" else " <span style='color:#8C88A3'>(computer control)</span>"
+        src = "" if a.get("server") != "grok-desktop" else f" <span style='color:{MUTED}'>(computer control)</span>"
         self.head.setText(f"<span style='font-size:15px'><span style='color:{color}'>{label}</span>"
                           f"&nbsp;&nbsp;Grok wants to: <b>{a['title']}</b></span>{src}")
         self.detail.setPlainText(a["detail"] or "(no details)")
@@ -536,7 +536,7 @@ class QuickAsk(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         frame = QFrame(self)
         frame.setObjectName("composer")
-        frame.setStyleSheet(f"#composer {{ border: 2px solid {V}; background: #15131D; border-radius: 16px; }}")
+        frame.setStyleSheet(f"#composer {{ border: 2px solid {V}; background: {PANEL_BG}; border-radius: 16px; }}")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(frame)
@@ -1084,7 +1084,7 @@ class MainWindow(QMainWindow):
 
     def _update_status(self) -> None:
         text = STATE_TEXT.get(self.ctl.state, self.ctl.state)
-        color = STATE_COLOR.get(self.ctl.state, "#8C88A3")
+        color = STATE_COLOR.get(self.ctl.state, MUTED)
         self.status.setText(text)
         self.status.setToolTip("")
         self.status_dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
