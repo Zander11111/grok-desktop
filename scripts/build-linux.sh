@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Build the Linux packages into dist/:  grok-desktop_0.2.3-linux_amd64.deb  and  grok-desktop-0.2.3-linux-x86_64.tar.gz
+# Build the Linux packages into dist/:  grok-desktop-0.2.4-linux-amd64.deb  and  grok-desktop-0.2.4-linux-amd64.tar.gz
 # (needs: .venv with pip, dpkg-deb, tar). Nothing is installed or published.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VER=0.2.3-linux
-TARVER=0.2.3-linux
+VER=0.2.4-linux
+TARVER=0.2.4-linux
+REL=0.2.4
 B=build/linux
 rm -rf "$B"; mkdir -p "$B" dist
 [ -d packaging/linux/icons ] || .venv/bin/python scripts/make_linux_icons.py
@@ -70,7 +71,7 @@ SH
 chmod 755 "$D/DEBIAN/postinst" "$D/DEBIAN/postrm"
 find "$D" -type d -exec chmod 755 {} +
 find "$D/usr" -type f ! -perm /111 -exec chmod 644 {} +
-dpkg-deb --root-owner-group -Zxz -b "$D" "dist/grok-desktop_${VER}_amd64.deb"
+dpkg-deb --root-owner-group -Zxz -b "$D" "dist/grok-desktop-${REL}-linux-amd64.deb"
 
 # ------------------------------------------------------------- tarball ----
 T="$B/tar/grok-desktop-$TARVER"
@@ -81,6 +82,6 @@ cp -r packaging/linux/icons "$T/icons"
 cp packaging/linux/grok-desktop.desktop packaging/linux/grok-desktop.sh packaging/linux/install.sh packaging/linux/uninstall.sh "$T/"
 cp README.md "$T/README.md"
 chmod 755 "$T/install.sh" "$T/uninstall.sh"
-tar -C "$B/tar" --owner=0 --group=0 -czf "dist/grok-desktop-$TARVER-x86_64.tar.gz" "grok-desktop-$TARVER"
-( cd dist && sha256sum "grok-desktop_${VER}_amd64.deb" "grok-desktop-$TARVER-x86_64.tar.gz" > SHA256SUMS-linux.txt )
+tar -C "$B/tar" --owner=0 --group=0 -czf "dist/grok-desktop-${REL}-linux-amd64.tar.gz" "grok-desktop-$TARVER"
+( cd dist && sha256sum "grok-desktop-${REL}-linux-amd64.deb" "grok-desktop-${REL}-linux-amd64.tar.gz" > SHA256SUMS-linux.txt )
 ls -la dist

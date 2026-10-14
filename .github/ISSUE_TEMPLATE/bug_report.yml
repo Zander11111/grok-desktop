@@ -8,7 +8,7 @@ body:
   - type: textarea
     attributes: {label: What did you expect?}
   - type: input
-    attributes: {label: Grok Desktop version, placeholder: "0.2.3"}
+    attributes: {label: Grok Desktop version, placeholder: "0.2.4"}
     validations: {required: true}
   - type: dropdown
     attributes: {label: OS, options: [Windows, macOS, Linux]}

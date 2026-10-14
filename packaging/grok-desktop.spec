@@ -24,6 +24,6 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="GrokDesktop", console
 coll = COLLECT(exe, a.binaries, a.datas, name="GrokDesktop")
 if sys.platform == "darwin":
     app = BUNDLE(coll, name="Grok Desktop.app", icon=os.path.join(SPECPATH, "icon.png"),
-                 bundle_identifier="com.zander11111.grokdesktop", version="0.2.3",
+                 bundle_identifier="com.zander11111.grokdesktop", version="0.2.4",
                  info_plist={"NSMicrophoneUsageDescription": "Voice mode listens to you so you can talk to Grok.",
                              "NSHighResolutionCapable": True, "LSUIElement": False})
