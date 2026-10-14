@@ -79,9 +79,16 @@ def test_conversation_render_roles(tmp_path):
         {"id": 3, "role": "tool", "text": "Take a screenshot", "meta": {"status": "completed"}},
         {"id": 4, "role": "assistant", "text": "done", "streaming": True},
         {"id": 5, "role": "note", "text": "Stopped.", "meta": {"kind": "error"}}])
-    assert img.as_uri() in html and "📄 n.txt" in html and "look &lt;here&gt;" in html
-    assert "✅ Take a screenshot" in html and "▍" in html and "Stopped." in html
+    assert img.as_uri() in html and "n.txt" in html and "look &lt;here&gt;" in html
+    assert "📄" not in html and "💭" not in html
+    assert 'width="30%"' in html and "copymsg:" not in html
+    assert "Done · Take a screenshot" in html and "▍" in html and "Stopped." in html
+    assert "<i>hmm</i>" in html
     assert r.message_text == {1: "look <here>", 4: "done"}
+    welcome = render.welcome_html()
+    assert "Ask anything" in welcome and "prompt:review" in welcome and "Explain this error" in welcome
+    assert render.starter_text("reply").startswith("Draft a clear")
+    assert render.starter_text("nope") == ""
 
 
 # ------------------------------------------------------------ permissions --

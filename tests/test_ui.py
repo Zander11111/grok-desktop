@@ -245,3 +245,43 @@ def test_scrolled_chat_paints_like_a_fresh_render(dapp):
     ia, ib = a.viewport().grab().toImage(), b.viewport().grab().toImage()
     assert ia.size() == ib.size() and ia == ib
     a.close(), b.close()
+
+
+def test_welcome_prompts_composer_and_quiet_chrome(dapp):
+    """Starter prompts fill the composer, the field grows, and chrome uses text instead of emoji."""
+    from PySide6.QtWidgets import QGroupBox, QPushButton
+    from grok_desktop.ui import SettingsDialog
+    w = dapp.win
+    html = w.chat.toHtml()
+    assert "Explain this error" in html and "Review a file" in html and "Draft a reply" in html
+    assert "📎" not in html
+    w.chat._on_link(QUrl("prompt:error"))
+    assert w.input.toPlainText().startswith("Explain this error")
+    w.resize(1100, 720)
+    pump(0.05)
+    w.input.setPlainText("one line")
+    w.input._fit()
+    short = w.input.height()
+    w.input.setPlainText("line\n" * 8)
+    w.input._fit()
+    assert w.input.height() > short
+    w.input.clear()
+    w.input._fit()
+    assert w.input.height() == short
+    assert w.status.text() == "Ready" and "🟢" not in w.status.text()
+    assert "Ask every time" in w.mode_lbl.text() and "🔒" not in w.mode_lbl.text()
+    assert w.attach_btn.text() == "" and not w.attach_btn.icon().isNull()
+    assert w.settings_btn.text() == "" and not w.settings_btn.icon().isNull()
+    assert w.mic_btn.text() == "Hold to talk" and w.mic_btn.isVisible()
+    assert not w.hf_btn.isVisible() and w.voice_more.isVisible()
+    w.voice_more.click()
+    assert w.hf_btn.isVisible() and w.mute_btn.isVisible() and not w.voice_more.isVisible()
+    d = SettingsDialog(dapp.ctl, w)
+    d.show()
+    pump(0.05)
+    titles = {g.title() for g in d.findChildren(QGroupBox)}
+    assert {"Permissions", "Model", "Desktop", "Voice", "Connection"} <= titles
+    for b in d.findChildren(QPushButton):
+        if b.isVisible():
+            assert b.mapTo(d, b.rect().topRight()).x() <= d.width() + 8, b.text()
+    d.close()

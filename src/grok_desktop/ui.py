@@ -6,24 +6,29 @@ import sys
 import time
 
 from PySide6.QtCore import QEvent, QMimeData, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QImage, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QImage, QKeySequence, QPixmap, QTextCursor
 from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFrame,
-                               QGroupBox, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+                               QGridLayout, QGroupBox, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem,
                                QMainWindow, QMenu, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QScrollArea, QSlider,
                                QSizePolicy, QTextBrowser, QVBoxLayout, QWidget)
 
 from . import APP_NAME, __version__, paths, permissions
 from .controller import Controller
-from .render import DOC_CSS, Renderer, welcome_html
-from .theme import B, BORDER as BORDER_C, MUTED, PANEL as PANEL_BG, V, app_icon
+from .render import DOC_CSS, Renderer, starter_text, welcome_html
+from .theme import B, BORDER as BORDER_C, MUTED, PANEL as PANEL_BG, V, app_icon, file_icon, paperclip_icon, settings_icon
 from .voice import models as vmodels
 from .voice.manager import SPEAK_LABELS, SPEAK_MODES, VoiceManager
 from .voice.orb import Orb
 
-STATE_TEXT = {"stopped": ("⚪", "Not connected"), "starting": ("🟡", "Starting grok…"),
-              "connecting": ("🟡", "Connecting…"), "ready": ("🟢", "Ready"), "busy": ("🟣", "Grok is answering…"),
-              "needs_login": ("🔴", "Sign in needed"), "error": ("🔴", "grok stopped"), "no_grok": ("🔴", "grok not installed"),
-              "logging_in": ("🟡", "Waiting for sign-in…"), "installing": ("🟡", "Installing grok…")}
+STATE_TEXT = {"stopped": "Not connected", "starting": "Starting grok…",
+              "connecting": "Connecting…", "ready": "Ready", "busy": "Grok is answering…",
+              "needs_login": "Sign in needed", "error": "grok stopped", "no_grok": "grok not installed",
+              "logging_in": "Waiting for sign-in…", "installing": "Installing grok…"}
+STATE_COLOR = {"stopped": "#8C88A3", "starting": "#E6B450", "connecting": "#E6B450", "ready": "#3DDC97",
+               "busy": "#A996FF", "needs_login": "#FF6B7A", "error": "#FF6B7A", "no_grok": "#FF6B7A",
+               "logging_in": "#E6B450", "installing": "#E6B450"}
+MODE_LABEL = {"ask": "Ask every time", "safe": "Safe actions", "all": "Allow everything"}
+MODE_COLOR = {"ask": MUTED, "safe": "#7DDE9A", "all": "#F0B429"}
 
 ALLOW_ALL_WARNING = (
     "<b>Allow everything</b> lets Grok do <b>anything</b> on this " + paths.PC_NAME + " without asking you first:<br><br>"
@@ -36,6 +41,8 @@ ALLOW_ALL_WARNING = (
 
 # ================================================================ chat view ==
 class ChatView(QTextBrowser):
+    promptChosen = Signal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("chat")
@@ -99,6 +106,12 @@ class ChatView(QTextBrowser):
 
     def _on_link(self, url: QUrl) -> None:
         s = url.toString()
+        if url.scheme() == "prompt" or s.startswith("prompt:"):
+            key = (url.path() or s.split(":", 1)[-1]).lstrip("/")
+            text = starter_text(key)
+            if text:
+                self.promptChosen.emit(text)
+            return
         if s.startswith("copy:"):
             n = int(s[5:])
             if 0 <= n < len(self.renderer.code_blocks):
@@ -130,7 +143,33 @@ class Composer(QPlainTextEdit):
         super().__init__(parent)
         self.setPlaceholderText("Message Grok…  (Enter to send, Shift+Enter for a new line)")
         self.setTabChangesFocus(True)
+        self._fitting = False
+        self.setMinimumHeight(64)
         self.setFixedHeight(64)
+        self.document().contentsChanged.connect(self._fit)
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._fit()
+
+    def _fit(self) -> None:
+        """Grow with the draft, up to about five lines, then scroll inside the field."""
+        if self._fitting:
+            return
+        width = self.viewport().width()
+        if width < 40:
+            return
+        self._fitting = True
+        try:
+            self.document().setTextWidth(width)
+            # QPlainTextDocumentLayout reports document height as a line count.
+            lines = min(5, max(1, int(round(self.document().size().height()))))
+            height = lines * self.fontMetrics().lineSpacing() + 18
+            height = max(64, height)
+            if self.height() != height:
+                self.setFixedHeight(height)
+        finally:
+            self._fitting = False
 
     def keyPressEvent(self, e):
         if e.key() in (Qt.Key_Return, Qt.Key_Enter) and not (e.modifiers() & Qt.ShiftModifier):
@@ -168,7 +207,7 @@ class Chip(QFrame):
         if not pm.isNull():
             icon.setPixmap(pm.scaled(QSize(40, 40), Qt.KeepAspectRatio, Qt.SmoothTransformation))
         else:
-            icon.setText("📄")
+            icon.setPixmap(file_icon(18).pixmap(18, 18))
         name = QLabel(os.path.basename(path)[:28])
         x = QPushButton("✕")
         x.setObjectName("ghost")
@@ -224,9 +263,11 @@ class PermissionCard(QFrame):
             self.hide()
             return
         a = req["assessment"]
-        icon = {"high": "🛑", "medium": "✋", "low": "ℹ️"}.get(a["risk"], "✋")
+        color, label = {"high": ("#FF7A90", "High risk"), "medium": ("#E6B450", "Caution"),
+                        "low": ("#A996FF", "Low risk")}.get(a["risk"], ("#E6B450", "Caution"))
         src = "" if a.get("server") != "grok-desktop" else " <span style='color:#8C88A3'>(computer control)</span>"
-        self.head.setText(f"<span style='font-size:15px'>{icon}&nbsp; Grok wants to: <b>{a['title']}</b></span>{src}")
+        self.head.setText(f"<span style='font-size:15px'><span style='color:{color}'>{label}</span>"
+                          f"&nbsp;&nbsp;Grok wants to: <b>{a['title']}</b></span>{src}")
         self.detail.setPlainText(a["detail"] or "(no details)")
         self.detail.setVisible(bool(a["detail"]))
         self.why.setText(" · ".join(a["reasons"]) if a["reasons"] else "")
@@ -259,15 +300,16 @@ class SettingsDialog(QDialog):
         t.setObjectName("h1")
         lay.addWidget(t)
 
-        g = QGroupBox("Permissions: what may Grok do without asking?")
+        g = QGroupBox("Permissions")
         gl = QVBoxLayout(g)
+        intro = QLabel("What Grok may do on this computer without asking.")
+        intro.setObjectName("muted")
+        intro.setWordWrap(True)
+        gl.addWidget(intro)
         self.modes = QButtonGroup(self)
-        desc = {"ask": "Grok asks before every action on your PC (you can allow a kind of action for one chat).",
-                "safe": "Reading files, screenshots, opening apps/websites and creating new files run without asking. "
-                        "Still asks before deleting, overwriting, commands that change the system, and any "
-                        "mouse/keyboard control.",
-                "all": "Nothing asks. Grok can do anything, including deleting files and controlling the mouse. "
-                       "Shows a warning first."}
+        desc = {"ask": "Grok asks before every action. You can allow one kind of action for this chat.",
+                "safe": "Reads, screenshots, and new files run freely. Deletes, overwrites, and mouse or keyboard control still ask.",
+                "all": "Nothing asks, including deleting files and controlling the mouse. A warning is shown first."}
         self.mode_buttons = {}
         for m in permissions.MODES:
             rb = QRadioButton(permissions.MODE_LABELS[m] + (" (default)" if m == "ask" else ""))
@@ -281,8 +323,8 @@ class SettingsDialog(QDialog):
             gl.addWidget(d)
             rb.toggled.connect(lambda on, m=m: on and self._mode(m))
         self.mode_buttons[ctl.mode].setChecked(True)
-        kill = QLabel(f"🛑 Emergency stop: <b>{ctl.settings['kill_hotkey']}</b> (works anywhere) halts all computer "
-                      "control at once. A glowing frame and a Stop bar show while Grok uses your mouse/keyboard.")
+        kill = QLabel(f"Emergency stop: <b>{ctl.settings['kill_hotkey']}</b> works anywhere and halts computer "
+                      "control at once. A glowing frame and a Stop bar show while Grok uses the mouse or keyboard.")
         kill.setWordWrap(True)
         gl.addWidget(kill)
         self.control = QCheckBox(f"Let Grok use this {paths.PC_NAME} (files, {paths.SHELL_NAME}, screen, mouse/keyboard, windows, apps)")
@@ -322,7 +364,7 @@ class SettingsDialog(QDialog):
         g3l.addLayout(row)
         lay.addWidget(g3)
 
-        g4 = QGroupBox("Grok")
+        g4 = QGroupBox("Connection")
         g4l = QVBoxLayout(g4)
         info = QLabel(f"grok: {ctl.grok or 'not found'}  {ctl.grok_version}<br>"
                       f"Signed in with your SuperGrok account through the grok app (no API key is used).<br>"
@@ -330,21 +372,27 @@ class SettingsDialog(QDialog):
         info.setObjectName("muted")
         info.setWordWrap(True)
         info.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        brow = QHBoxLayout()
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(8)
         def copy_diag():
             QGuiApplication.clipboard().setText(ctl.diagnostics())
-        for text, fn in (("Reconnect", ctl.restart), ("Restart agent", lambda: ctl.restart_agent("Restarted grok.")),
-                         ("Copy diagnostics", copy_diag), ("Sign in again", lambda: ctl.start_login(False)),
-                         ("Open data folder", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(paths.data_dir()))),
-                         ("Show log", self._show_log)):
+        actions = (("Reconnect", ctl.restart), ("Restart agent", lambda: ctl.restart_agent("Restarted grok.")),
+                   ("Copy diagnostics", copy_diag), ("Sign in again", lambda: ctl.start_login(False)),
+                   ("Open data folder", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(paths.data_dir()))),
+                   ("Show log", self._show_log))
+        for i, (text, fn) in enumerate(actions):
             b = QPushButton(text)
             b.clicked.connect(fn)
-            brow.addWidget(b)
+            grid.addWidget(b, i // 2, i % 2)
         g4l.addWidget(info)
-        g4l.addLayout(brow)
-        lay.addWidget(g4)
-        g5 = QGroupBox("Voice (talk to Grok, Grok talks back — runs on this computer)")
+        g4l.addLayout(grid)
+        g5 = QGroupBox("Voice")
         g5l = QVBoxLayout(g5)
+        voice_note = QLabel("Speech recognition and the voice run on this computer.")
+        voice_note.setObjectName("muted")
+        voice_note.setWordWrap(True)
+        g5l.addWidget(voice_note)
         vm = parent.voice if hasattr(parent, "voice") else None
         self.vm = vm
         self.v_enabled = QCheckBox("Show the voice bar (mic button, hands-free, mute)")
@@ -394,6 +442,7 @@ class SettingsDialog(QDialog):
         note.setWordWrap(True)
         g5l.addWidget(note)
         lay.addWidget(g5)
+        lay.addWidget(g4)
         lay.addStretch()
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         bb.rejected.connect(self.reject)
@@ -563,12 +612,12 @@ class MainWindow(QMainWindow):
         brand_row.addWidget(logo)
         brand_row.addWidget(brand, 1)
         sl.addLayout(brand_row)
-        self.new_btn = QPushButton("＋  New chat")
+        self.new_btn = QPushButton("+  New chat")
         self.new_btn.setObjectName("primary")
         self.new_btn.clicked.connect(self.new_chat)
         sl.addWidget(self.new_btn)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("🔍  Search chats")
+        self.search.setPlaceholderText("Search chats")
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self.refresh_sidebar)
         sl.addWidget(self.search)
@@ -582,16 +631,23 @@ class MainWindow(QMainWindow):
         self.list.itemDoubleClicked.connect(lambda it: self.rename_chat(it.data(Qt.UserRole)))
         sl.addWidget(self.list, 1)
         bottom = QHBoxLayout()
+        self.status_dot = QFrame()
+        self.status_dot.setFixedSize(8, 8)
         self.status = QLabel()
         self.status.setObjectName("muted")
-        self.settings_btn = QPushButton("⚙")
+        self.settings_btn = QPushButton()
+        self.settings_btn.setIcon(settings_icon(16))
+        self.settings_btn.setIconSize(QSize(16, 16))
+        self.settings_btn.setFixedSize(28, 28)
         self.settings_btn.setObjectName("ghost")
         self.settings_btn.setToolTip("Settings")
+        self.settings_btn.setAccessibleName("Settings")
         self.settings_btn.clicked.connect(self.open_settings)
         self.github_btn = QPushButton("GitHub")
         self.github_btn.setObjectName("ghost")
         self.github_btn.setToolTip("Sign in to GitHub, clone, commit, push, create a repo")
         self.github_btn.clicked.connect(self.open_github)
+        bottom.addWidget(self.status_dot, 0, Qt.AlignVCenter)
         bottom.addWidget(self.status, 1)
         bottom.addWidget(self.github_btn)
         bottom.addWidget(self.settings_btn)
@@ -636,6 +692,7 @@ class MainWindow(QMainWindow):
         self.banner.hide()
 
         self.chat = ChatView()
+        self.chat.promptChosen.connect(self._use_prompt)
         ml.addWidget(self.chat, 1)
 
         self.activity = QLabel()
@@ -676,9 +733,13 @@ class MainWindow(QMainWindow):
         self.chips_w.hide()
         cl.addWidget(self.chips_w)
         row = QHBoxLayout()
-        self.attach_btn = QPushButton("📎")
+        self.attach_btn = QPushButton()
+        self.attach_btn.setIcon(paperclip_icon(18))
+        self.attach_btn.setIconSize(QSize(18, 18))
+        self.attach_btn.setFixedSize(36, 36)
         self.attach_btn.setObjectName("ghost")
-        self.attach_btn.setToolTip("Attach files or images (or drag & drop / paste)")
+        self.attach_btn.setToolTip("Attach files or images")
+        self.attach_btn.setAccessibleName("Attach files")
         self.attach_btn.clicked.connect(self.pick_files)
         self.input = Composer()
         self.input.submit.connect(self.send)
@@ -697,7 +758,7 @@ class MainWindow(QMainWindow):
         cw.addWidget(comp)
         ml.addLayout(cw)
         hint = QLabel(f"Grok can make mistakes. Emergency stop for computer control: {ctl.settings['kill_hotkey']}")
-        hint.setObjectName("muted")
+        hint.setObjectName("hint")
         hint.setAlignment(Qt.AlignCenter)
         ml.addWidget(hint)
         h.addWidget(main, 1)
@@ -738,28 +799,36 @@ class MainWindow(QMainWindow):
         self.voice_label.setTextFormat(Qt.RichText)
         self.voice_label.setMinimumWidth(120)
         l.addWidget(self.voice_label, 1)
-        self.mic_btn = QPushButton("🎤  Hold to talk")
+        self.mic_btn = QPushButton("Hold to talk")
         self.mic_btn.setObjectName("primary")
         self.mic_btn.pressed.connect(self._mic_pressed)
         self.mic_btn.released.connect(self.voice.ptt_end)
-        self.hf_btn = QPushButton("🎧  Hands-free")
+        self.hf_btn = QPushButton("Hands-free")
         self.hf_btn.setCheckable(True)
         self.hf_btn.setToolTip("Keep listening: speak, pause, and Grok answers. The mic closes while Grok is speaking.")
         self.hf_btn.clicked.connect(self._hf_clicked)
-        self.mute_btn = QPushButton("🔇")
+        self.mute_btn = QPushButton("Mute")
         self.mute_btn.setCheckable(True)
         self.mute_btn.setToolTip("Mute the microphone")
         self.mute_btn.clicked.connect(self.voice.set_muted)
-        self.stop_voice_btn = QPushButton("⏹ Stop")
+        self.mute_btn.toggled.connect(lambda on: self.mute_btn.setText("Muted" if on else "Mute"))
+        self.stop_voice_btn = QPushButton("Stop")
         self.stop_voice_btn.setToolTip("Stop speaking (and skip the rest of this answer)")
         self.stop_voice_btn.clicked.connect(self.voice.stop_speaking)
-        self.skip_btn = QPushButton("⏭")
+        self.skip_btn = QPushButton("Skip")
         self.skip_btn.setToolTip("Skip this sentence")
         self.skip_btn.clicked.connect(self.voice.skip_sentence)
-        for b in (self.mic_btn, self.hf_btn, self.mute_btn, self.skip_btn, self.stop_voice_btn):
+        self.voice_more = QPushButton("Options")
+        self.voice_more.setObjectName("ghost")
+        self.voice_more.setToolTip("Hands-free and mute")
+        self.voice_more.clicked.connect(lambda: self._reveal_voice(True))
+        self._voice_revealed = False
+        for b in (self.mic_btn, self.hf_btn, self.mute_btn, self.skip_btn, self.stop_voice_btn, self.voice_more):
             l.addWidget(b)
         self.stop_voice_btn.hide()
         self.skip_btn.hide()
+        self.hf_btn.hide()
+        self.mute_btn.hide()
         return f
 
     def _wire_voice(self) -> None:
@@ -851,10 +920,10 @@ class MainWindow(QMainWindow):
     def _voice_state(self, s: str) -> None:
         self.orb.set_state(s)
         k = self.ctl.settings.get("voice_ptt_key", "Ctrl+Space")
-        txt = {"idle": f"<span style='color:{MUTED}'>Voice ready · hold 🎤 or {k} to talk</span>",
-               "listening": f"<b style='color:{V}'>● Listening…</b> " + (self._voice_partial or ""),
+        txt = {"idle": f"<span style='color:{MUTED}'>Voice ready · hold {k} to talk</span>",
+               "listening": f"<b style='color:{V}'>Listening…</b> " + (self._voice_partial or ""),
                "thinking": f"<span style='color:{B}'>Thinking…</span>",
-               "speaking": f"<span style='color:{B}'>Speaking…</span> <span style='color:{MUTED}'>(Esc or ⏹ to stop)</span>",
+               "speaking": f"<span style='color:{B}'>Speaking…</span> <span style='color:{MUTED}'>(Esc to stop)</span>",
                "muted": f"<span style='color:{MUTED}'>Microphone muted</span>",
                "loading": "Preparing voice… " + (self._voice_progress or ""),
                "error": "<span style='color:#FF7A8A'>Voice error: see status</span>"}.get(s, s)
@@ -864,6 +933,20 @@ class MainWindow(QMainWindow):
         self.stop_voice_btn.setVisible(s == "speaking")
         self.skip_btn.setVisible(s == "speaking")
         self.mic_btn.setEnabled(s != "loading")
+        self._sync_voice_extras(s)
+
+    def _reveal_voice(self, on: bool = True) -> None:
+        self._voice_revealed = on
+        self._sync_voice_extras(self.voice.state)
+
+    def _sync_voice_extras(self, state: str) -> None:
+        """Orb and Hold to talk stay up; hands-free and mute appear once voice is in use."""
+        if state in ("listening", "speaking", "thinking", "muted"):
+            self._voice_revealed = True
+        show = self._voice_revealed
+        self.hf_btn.setVisible(show)
+        self.mute_btn.setVisible(show)
+        self.voice_more.setVisible(not show)
 
     # ------------------------------------------------------------- sidebar --
     def refresh_sidebar(self) -> None:
@@ -897,8 +980,8 @@ class MainWindow(QMainWindow):
             return
         cid = it.data(Qt.UserRole)
         m = QMenu(self)
-        m.addAction("✏️  Rename", lambda: self.rename_chat(cid))
-        m.addAction("🗑  Delete", lambda: self.delete_chat(cid))
+        m.addAction("Rename", lambda: self.rename_chat(cid))
+        m.addAction("Delete", lambda: self.delete_chat(cid))
         m.exec(self.list.mapToGlobal(pos))
 
     def rename_chat(self, cid: str) -> None:
@@ -921,6 +1004,14 @@ class MainWindow(QMainWindow):
     def new_chat(self) -> None:
         self.ctl.new_chat()
         self.input.setFocus()
+
+    def _use_prompt(self, text: str) -> None:
+        self.input.setPlainText(text)
+        self.input.setFocus()
+        cursor = self.input.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        self.input.setTextCursor(cursor)
+        self.input._fit()
 
     # ----------------------------------------------------------- composer --
     def _send_or_stop(self) -> None:
@@ -992,9 +1083,11 @@ class MainWindow(QMainWindow):
         self._status_timer.start()
 
     def _update_status(self) -> None:
-        icon, text = STATE_TEXT.get(self.ctl.state, ("⚪", self.ctl.state))
-        self.status.setText(f"{icon} {text}")
+        text = STATE_TEXT.get(self.ctl.state, self.ctl.state)
+        color = STATE_COLOR.get(self.ctl.state, "#8C88A3")
+        self.status.setText(text)
         self.status.setToolTip("")
+        self.status_dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
 
     def _set_banner(self, text: str, buttons: list[tuple[str, object, str]] = (), kind: str = "") -> None:
         key = (text, tuple(b[0] for b in buttons), kind)
@@ -1031,11 +1124,13 @@ class MainWindow(QMainWindow):
         self.send_btn.setToolTip("Stop" if busy else "Send (Enter)")
         self.send_btn.style().unpolish(self.send_btn)
         self.send_btn.style().polish(self.send_btn)
-        self.mode_lbl.setText({"ask": "🔒 Ask every time", "safe": "🛡 Auto-allow safe", "all": "⚠️ Allow everything"}
-                              [self.ctl.mode] + "   ")
+        mode = self.ctl.mode
+        self.mode_lbl.setTextFormat(Qt.RichText)
+        self.mode_lbl.setText(
+            f"<span style='color:{MODE_COLOR.get(mode, MUTED)}'>{MODE_LABEL.get(mode, mode)}</span>")
         c = self.ctl
         if c.control.killed:
-            self._set_banner("🛑 <b>Emergency stop is on</b>: computer control is halted. Sending a new message "
+            self._set_banner("<b>Emergency stop is on</b>: computer control is halted. Sending a new message "
                              "turns it back on.", [("Resume", c.resume_control, "")], "error")
         elif s == "no_grok":
             self._set_banner("<b>The grok app isn't installed yet.</b> Grok Desktop uses xAI's free <i>grok</i> "
@@ -1050,10 +1145,10 @@ class MainWindow(QMainWindow):
             url, code = self.login
             extra = (f"<br>If the browser didn't open: <a href='{url}'>{url}</a>" if url else "") + \
                     (f"<br>Code: <b style='font-size:15px'>{code}</b>" if code else "")
-            self._set_banner("⏳ Waiting for you to finish signing in in the browser…" + extra,
+            self._set_banner("Waiting for you to finish signing in in the browser…" + extra,
                              [("Cancel", c.cancel_login, "")])
         elif c.stuck and c.busy:
-            self._set_banner(f"⏳ <b>Grok seems stuck</b>: nothing has come back from it for {int(time.time() - c.acp.last_traffic)}+ seconds. "
+            self._set_banner(f"<b>Grok seems stuck</b>: nothing has come back from it for {int(time.time() - c.acp.last_traffic)}+ seconds. "
                              "A slow command can look like this too. Stop cancels the answer; Restart agent restarts grok "
                              "and keeps this chat.",
                              [("Stop", c.stop, ""), ("Restart agent", lambda: c.restart_agent("Restarted grok because it stopped responding."), "primary"),

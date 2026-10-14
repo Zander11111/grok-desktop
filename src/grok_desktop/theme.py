@@ -61,10 +61,13 @@ def apply(app: QApplication) -> None:
         #detail {{ background: #0B0A10; border: 1px solid {BORDER}; border-radius: 8px;
                    font-family: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; }}
         #muted {{ color: {MUTED}; }}
+        #hint {{ color: {MUTED}; font-size: 11px; }}
         #h1 {{ font-size: 18px; font-weight: bold; }}
         QRadioButton, QCheckBox {{ spacing: 8px; }}
-        QRadioButton::indicator:checked, QCheckBox::indicator:checked {{ background: {V}; border: 2px solid {V}; border-radius: 7px; }}
-        QRadioButton::indicator, QCheckBox::indicator {{ width: 12px; height: 12px; border: 2px solid #5E5A72; border-radius: 7px; }}
+        QRadioButton::indicator {{ width: 16px; height: 16px; border: 2px solid #5E5A72; border-radius: 8px; background: transparent; }}
+        QRadioButton::indicator:checked {{ background: {V}; border: 2px solid {V}; border-radius: 8px; }}
+        QCheckBox::indicator {{ width: 16px; height: 16px; border: 2px solid #5E5A72; border-radius: 4px; background: transparent; }}
+        QCheckBox::indicator:checked {{ background: {V}; border: 2px solid {V}; border-radius: 4px; }}
         QScrollBar:vertical {{ background: transparent; width: 10px; }}
         QScrollBar::handle:vertical {{ background: #3A3650; border-radius: 4px; min-height: 30px; }}
         QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
@@ -97,6 +100,70 @@ def icon_pixmap(size: int = 256) -> QPixmap:
     p.drawLine(QPointF(size * .5, size * .5), QPointF(size * .74, size * .5))
     p.end()
     return pm
+
+
+def _line_icon(draw, size: int = 18, color: str = "#C9C4DC") -> QIcon:
+    """A small monochrome stroke icon. Emoji glyphs are missing or monochrome on some Linux fonts."""
+    pm = QPixmap(size, size)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor(color), max(1.35, size / 12.0), Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.NoBrush)
+    draw(p, float(size))
+    p.end()
+    return QIcon(pm)
+
+
+def paperclip_icon(size: int = 18) -> QIcon:
+    def draw(p: QPainter, s: float) -> None:
+        # Open loops so the mark still reads as a clip at toolbar size.
+        pen = p.pen()
+        pen.setWidthF(max(1.15, s / 14.0))
+        p.setPen(pen)
+        path = QPainterPath()
+        left, right = s * 0.22, s * 0.78
+        inner_l, inner_r = s * 0.42, s * 0.58
+        top, bot = s * 0.12, s * 0.88
+        path.moveTo(inner_r, s * 0.40)
+        path.lineTo(inner_r, s * 0.62)
+        path.cubicTo(inner_r, bot - s * 0.10, inner_l, bot - s * 0.10, inner_l, s * 0.62)
+        path.lineTo(inner_l, s * 0.42)
+        path.cubicTo(inner_l, top + s * 0.10, right, top + s * 0.06, right, s * 0.36)
+        path.lineTo(right, s * 0.64)
+        path.cubicTo(right, bot, left, bot, left, s * 0.64)
+        path.lineTo(left, s * 0.30)
+        path.cubicTo(left, top, inner_r + s * 0.02, top, inner_r + s * 0.02, s * 0.32)
+        p.drawPath(path)
+    return _line_icon(draw, size)
+
+
+def settings_icon(size: int = 18) -> QIcon:
+    """Slider rows, which stay recognizable at the size of a toolbar button."""
+    def draw(p: QPainter, s: float) -> None:
+        color = QColor("#C9C4DC")
+        pen = p.pen()
+        for y, knob in ((0.24, 0.64), (0.50, 0.38), (0.76, 0.70)):
+            cy, kx = s * y, s * knob
+            radius = s * 0.13
+            p.setPen(pen)
+            p.setBrush(Qt.NoBrush)
+            p.drawLine(QPointF(s * 0.14, cy), QPointF(kx - radius - 0.4, cy))
+            p.drawLine(QPointF(kx + radius + 0.4, cy), QPointF(s * 0.86, cy))
+            p.setPen(Qt.NoPen)
+            p.setBrush(color)
+            p.drawEllipse(QPointF(kx, cy), radius, radius)
+    return _line_icon(draw, size)
+
+
+def file_icon(size: int = 18) -> QIcon:
+    def draw(p: QPainter, s: float) -> None:
+        p.drawRoundedRect(QRectF(s * 0.24, s * 0.12, s * 0.46, s * 0.76), 1.6, 1.6)
+        p.drawLine(QPointF(s * 0.34, s * 0.40), QPointF(s * 0.60, s * 0.40))
+        p.drawLine(QPointF(s * 0.34, s * 0.54), QPointF(s * 0.60, s * 0.54))
+        p.drawLine(QPointF(s * 0.34, s * 0.68), QPointF(s * 0.52, s * 0.68))
+    return _line_icon(draw, size)
 
 
 def app_icon() -> QIcon:

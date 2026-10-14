@@ -48,7 +48,7 @@ class DesktopApp:
                 self.tray.setToolTip(APP_NAME)
                 m = QMenu()
                 for text, fn in ((f"Open {APP_NAME}", self.win.bring_to_front), ("Quick ask…", self.quick.popup),
-                                 ("🛑 Emergency stop", self.ctl.emergency_stop), (None, None), ("Quit", self.quit)):
+                                 ("Emergency stop", self.ctl.emergency_stop), (None, None), ("Quit", self.quit)):
                     if text is None:
                         m.addSeparator()
                     else:
