@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover
 
 ACCENT = "#7C5CFF"
 ACCENT2 = "#3D8BFF"
-FG, MUTED, CODE_BG, CODE_HEAD, USER_BG = "#E8E6F0", "#8C88A3", "#0B0A10", "#1C1A26", "#272248"
+FG, MUTED, CODE_BG, CODE_HEAD, USER_BG = "#E8E8E8", "#8D8D8D", "#0A0A0A", "#161616", "#262626"
 STATUS_WORD = {"pending": "Pending", "in_progress": "Working", "completed": "Done", "failed": "Failed"}
 STARTERS = (
     ("error", "Explain this error", "Explain this error:\n\n"),
@@ -38,9 +38,9 @@ _FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})\s*([\w+#.-]*)[^\n]*$")
 DOC_CSS = f"""
 body {{ color: {FG}; }}
 a {{ color: #A996FF; text-decoration: none; }}
-code {{ font-family: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; background-color: #1E1C29; }}
+code {{ font-family: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; background-color: #1A1A1A; }}
 pre {{ font-family: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace; margin: 0; }}
-th {{ background-color: #1E1C29; padding: 4px 8px; }}
+th {{ background-color: #1A1A1A; padding: 4px 8px; }}
 td {{ padding: 2px 6px; }}
 h1, h2, h3 {{ color: #FFFFFF; }}
 """
@@ -73,7 +73,7 @@ def md_to_html(text: str) -> str:
     _MD.reset()
     out = _MD.convert(_loosen_lists(text))
     # Qt rich text: give tables a visible grid
-    return out.replace("<table>", '<table border="1" cellspacing="0" cellpadding="4" style="border-color:#34313F">')
+    return out.replace("<table>", '<table border="1" cellspacing="0" cellpadding="4" style="border-color:#333333">')
 
 
 def split_fences(text: str) -> list[tuple[str, str, str]]:
@@ -146,7 +146,7 @@ class Renderer:
                 out.append(f'<img src="{html.escape(uri)}" width="{min(w, 360)}"> ')
             else:
                 name = html.escape(a.get("name", p))
-                out.append(f'<span style="background-color:#1E1C29; color:{FG}">&nbsp;{name}&nbsp;</span> ')
+                out.append(f'<span style="background-color:#1A1A1A; color:{FG}">&nbsp;{name}&nbsp;</span> ')
         return "<p>" + "".join(out) + "</p>" if out else ""
 
     def message(self, m: dict) -> str:
@@ -191,7 +191,7 @@ def starter_text(key: str) -> str:
 
 def welcome_html() -> str:
     cells = "".join(
-        f'<td bgcolor="#1C1A26" style="padding:8px 14px"><a href="prompt:{key}">{html.escape(label)}</a></td>'
+        f'<td bgcolor="#1C1C1C" style="padding:8px 14px"><a href="prompt:{key}">{html.escape(label)}</a></td>'
         for key, label, _text in STARTERS)
     return (f'<br><br><p align="center" style="font-size:26px"><b><span style="color:{ACCENT}">Grok</span>'
             f'<span style="color:{ACCENT2}"> Desktop</span></b></p>'

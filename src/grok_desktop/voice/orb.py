@@ -59,7 +59,7 @@ class Orb(QWidget):
         base = w * 0.27
         s = self.state
         if s == "muted":
-            a, b = QColor("#55526A"), QColor("#3A384A")
+            a, b = QColor("#5A5A5A"), QColor("#3A3A3A")
             r = base
         else:
             a, b = VIOLET, BLUE
@@ -112,6 +112,6 @@ class Orb(QWidget):
                 p.setBrush(mix(a, b, i / 2))
                 p.drawEllipse(q, 2.6, 2.6)
         if s == "muted":
-            p.setPen(QPen(QColor("#C0BDD3"), 2))
+            p.setPen(QPen(QColor("#C8C8C8"), 2))
             p.drawLine(QPointF(c.x() - r, c.y() + r), QPointF(c.x() + r, c.y() - r))
         p.end()
