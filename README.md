@@ -1,16 +1,20 @@
 # Grok Desktop
 
-A desktop chat app for Grok for Linux, Windows and macOS. It drives the official `grok` CLI over the
-Agent Client Protocol (`grok agent stdio`), signed in with a SuperGrok account, so no xAI API key is needed.
+A desktop chat app for Grok for Linux, Windows and macOS. The window is black and gray, with a violet-to-blue
+accent on primary actions. It drives the official `grok` CLI over the Agent Client Protocol (`grok agent stdio`),
+signed in with a SuperGrok account, so no xAI API key is needed.
 
 > **Unofficial.** Grok Desktop is an independent community project. It is not made, endorsed or supported by xAI.
 > "Grok" is a trademark of xAI. You need an active SuperGrok subscription and the official `grok` CLI installed and signed in.
 
+![Grok Desktop, new chat](screenshots/08-linux-welcome.png)
+
 ![Grok Desktop chat window](screenshots/01-chat-history.png)
 
 ## Features
-- Chat with a history sidebar (search, rename, delete), Markdown, highlighted code blocks, streaming and Stop
-- Attachments (drag and drop, paste, file picker), inline images
+- Chat with a history sidebar (search, rename, delete), Markdown, highlighted code blocks, streaming and Stop.
+  A new chat offers starter prompts that fill the message field.
+- Attachments (drag and drop, paste, file picker), inline images. The message field grows with the draft.
 - Computer control through a built-in MCP server (files, shell, screenshots, mouse/keyboard, windows, apps),
   with a permission system for risky actions
 - **Voice mode**: offline speech-to-text and text-to-speech (sherpa-onnx; Zipformer ASR, Piper voices) with an animated orb.
