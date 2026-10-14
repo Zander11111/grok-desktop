@@ -1,7 +1,7 @@
 ; Inno Setup script: per-user install, no admin needed.  iscc packaging\installer.iss  (after PyInstaller)
 ; Installs to %LOCALAPPDATA%\Programs\GrokDesktop. Chat history/settings live in %APPDATA%\GrokDesktop and are kept on uninstall.
 #ifndef AppVersion
-#define AppVersion "0.2.3"
+#define AppVersion "0.2.4"
 #endif
 [Setup]
 AppId={{58D82AE6-4380-42E8-8ABD-C2C9125D7BC4}
